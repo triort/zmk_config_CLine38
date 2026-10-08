@@ -14,14 +14,85 @@
 #define KEYS_R 5 6 7 8 9 15 16 17 18 19 25 26 27 28 29
 #define THUMBS 30 31 32 33 34 35 36 37
 
+// 【変更】quick-tap-ms を 0 → 150 に変更
+//   Space/Shift (&mt LSFT SPACE) をタップした直後 150ms 以内に再度長押しすると、
+//   Shift ではなく Space を押しっぱなし (キーリピート) にする。
+//   Space 直後に Shift で大文字を打つと Space 連打になる誤爆が出る場合は値を下げる (100〜120 程度)。
+//   ※ &mt を使う他のキー (PrintScreen など) にも同じ挙動が付く
 &mt {
     flavor = "balanced";
-    quick-tap-ms = <0>;
+    quick-tap-ms = <150>;
 };
 
 / {
     // 標準コンボ (D+F: Tab, S+D: Shift+Tab) を削除
     // コンボは DYA Studio のランタイムコンボで管理する (D+F, S+D も DYA Studio 側で使用中のため衝突回避)
+
+    // 【追加】ランタイムコンボの初期値 (zmk-feature-runtime-combo の compile-time defaults)
+    //   書き込み直後や settings_reset 後でも有効。DYA Studio で編集した値があればそちらが優先され、
+    //   DYA Studio の「Reset to Default」でここの値に戻せる。
+    //   slot 番号ごとに管理されるため、DYA Studio 側の登録とスロット番号を揃えること
+    //   (揃っていないと同じコンボが二重に有効になる)。layers 省略 = 全レイヤーで有効。
+    //   キー位置: S=11 D=12 F=13 / J=16 K=17 / W=1 E=2 / U=6 I=7 O=8 / X=21 C=22
+    runtime_combo_defaults {
+        compatible = "cormoran,runtime-combo-defaults";
+
+        combo_lang1 {
+            slot = <0>;
+            key-positions = <16 17>;    // J + K
+            bindings = <&kp LANG1>;
+            display-name = "LANG1";
+        };
+
+        combo_lang2 {
+            slot = <1>;
+            key-positions = <12 13>;    // D + F
+            bindings = <&kp LANG2>;
+            display-name = "LANG2";
+        };
+
+        combo_lclick {
+            slot = <2>;
+            key-positions = <6 7>;      // U + I
+            bindings = <&mkp LCLK>;
+            display-name = "Left Click";
+        };
+
+        combo_rclick {
+            slot = <3>;
+            key-positions = <7 8>;      // I + O
+            bindings = <&mkp RCLK>;
+            display-name = "Right Click";
+        };
+
+        combo_mclick {
+            slot = <4>;
+            key-positions = <6 8>;      // U + O
+            bindings = <&mkp MCLK>;
+            display-name = "Middle Click";
+        };
+
+        combo_tab {
+            slot = <5>;
+            key-positions = <11 12>;    // S + D
+            bindings = <&kp TAB>;
+            display-name = "Tab";
+        };
+
+        combo_esc {
+            slot = <6>;
+            key-positions = <1 2>;      // W + E
+            bindings = <&kp ESC>;
+            display-name = "Esc";
+        };
+
+        combo_del {
+            slot = <7>;
+            key-positions = <21 22>;    // X + C
+            bindings = <&kp DEL>;
+            display-name = "Delete";
+        };
+    };
 
     macros {
         to_layer_0: to_layer_0 {
@@ -43,11 +114,13 @@
         };
 
         // Home Row Mods (HRM)
+        // ref: https://zenn.dev/tomori_k/articles/9793e7300488f6
         //   flavor = "balanced"        : 押して離すまでのタイミングで判定し、速打ち時の誤判定 (例: "ha" → Ctrl+A) を防ぐ
         //   hold-trigger-key-positions : 反対の手 (+親指) のキーを押したときだけ Hold と判定し、片手打鍵での誤爆を防ぐ
         //   hold-trigger-on-release    : 判定をキーを離すまで遅らせ、同じ手で修飾キーを重ねる操作も可能にする
         //   require-prior-idle-ms      : 直前の打鍵から 150ms 以内なら必ず Tap 扱い (高速タイピング時の誤爆を大幅に軽減)
 
+        // 【変更】default_layer の D / F / J / K に割り当て済み
         // 左手 HRM (D: Alt)
         hm_l: hm_l {
             compatible = "zmk,behavior-hold-tap";
@@ -95,52 +168,56 @@
     keymap {
         compatible = "zmk,keymap";
 
+        // 【変更】DYA Studio の現在の設定 (Keyboard Abyss 書き出し cline38-2026-10-08 v2) に合わせて全レイヤーを更新
+        //   数値表記のキーコードは名前表記に変換。D / F / J / K は &mt から HRM 用 behavior に変更。
         default_layer {
             bindings = <
-&kp Q      &kp W     &kp E     &kp R   &kp T                                         &kp Y      &kp U        &kp I       &kp O     &kp P
-&kp A      &kp S     &kp D     &kp F   &kp G                                         &kp H      &kp J        &kp K       &kp L     &kp MINUS
-&kp Z      &kp X     &kp C     &kp V   &kp B                                         &kp N      &kp M        &kp COMMA   &kp DOT   &mo 3
-           &kp LGUI  &kp LALT  &mo 2   &kp LCTRL   &mt LSFT SPACE           &kp RET  &kp BSPC                            &none
+&kp Q      &kp W     &kp E          &kp R                 &kp T                                       &kp Y      &kp U           &kp I          &kp O     &kp P
+&kp A      &kp S     &hm_l LALT D   &hm_l_mouse LCTRL F   &kp G                                       &kp H      &hm_r LCTRL J   &hm_r LALT K   &kp L     &kp MINUS
+&kp Z      &kp X     &kp C          &kp V                 &kp B                                       &kp N      &kp M           &kp COMMA      &kp DOT   &lt 3 SLASH
+           &kp LGUI  &kp LALT       &mo 2                 &mo 1     &mt LSFT SPACE          &kp RET   &kp BSPC                                            &trans
             >;
         };
 
 
         layer_1 {
             bindings = <
-&kp CARET      &kp NUMBER_7   &kp NUMBER_8   &kp NUMBER_9   &kp AT_SIGN                              &kp LEFT_PARENTHESIS    &kp RIGHT_PARENTHESIS  &kp DOUBLE_QUOTES      &kp SEMI    &kp EXCLAMATION
-&kp PLUS       &kp NUMBER_4   &kp NUMBER_5   &kp NUMBER_6   &kp HASH                                 &kp LEFT_BRACKET        &kp RIGHT_BRACKET      &kp SINGLE_QUOTE       &kp COLON   &kp QMARK
-&kp ASTERISK   &kp NUMBER_1   &kp NUMBER_2   &kp NUMBER_3   &kp UNDERSCORE                           &kp SLASH               &kp BACKSLASH          &kp AMPERSAND          &kp PIPE    &kp PERCENT
-               &kp NUMBER_0   &kp DOT        &kp COMMA      &trans          &trans          &kp RET  &kp BSPC                                                              &kp DOLLAR
+&trans     &trans    &trans     &trans       &trans                                            &kp CARET   &trans      &trans     &trans     &mt LA(PSCRN) PSCRN
+&kp EXCL   &kp AT_SIGN &kp HASH &kp DOLLAR   &kp PERCENT                                       &kp AMPS    &kp SQT     &kp STAR   &kp LPAR   &kp RPAR
+&trans     &trans    &trans     &kp SEMI     &trans                                            &kp BSLH    &kp GRAVE   &trans     &kp LBKT   &kp RBKT
+           &trans    &trans     &trans       &trans     &trans               &kp RET           &kp BSPC                                       &trans
             >;
         };
 
 
+        // 【変更】テンキーの = (KP_EQUAL) は Windows で入力できないため、通常の = (EQUAL) に変更
         MOUSE {
             bindings = <
-&trans   &kp F7   &kp F8   &kp F9   &kp F10                         &trans   &trans           &trans           &trans            &trans
-&trans   &kp F4   &kp F5   &kp F6   &kp F11                         &trans   &trans           &kp UP_ARROW     &trans            &trans
-&trans   &kp F1   &kp F2   &kp F3   &kp F12                         &trans   &kp LEFT_ARROW   &kp DOWN_ARROW   &kp RIGHT_ARROW   &trans
-         &trans   &trans   &trans   &trans    &trans      &kp RET   &kp BSPC                                   &kp ESC
+&kp F1         &kp F2            &kp F3         &kp F4        &kp F5                              &kp F6      &kp F7      &kp F8      &kp F9      &kp F10
+&kp KP_N1      &kp KP_N2         &kp KP_N3      &kp KP_N4     &kp KP_N5                           &kp KP_N6   &kp KP_N7   &kp KP_N8   &kp KP_N9   &kp KP_N0
+&kp KP_SLASH   &kp KP_MULTIPLY   &kp KP_MINUS   &kp KP_PLUS   &kp EQUAL                           &kp F11     &kp F12     &kp COMMA   &kp DOT     &trans
+               &trans            &trans         &trans        &trans     &trans          &kp RET  &kp BSPC                                          &trans
             >;
         };
 
 
+        // スクロールモードのレイヤー (CLine38_R.overlay の scroller layers = <3>)。&lt 3 SLASH (/ 長押し) で有効
         SCROLL {
             bindings = <
-&bt BT_CLR       &trans         &trans         &trans         &trans                                &trans     &trans   &trans   &trans   &trans
-&bt BT_CLR_ALL   &bt BT_SEL 4   &trans         &trans         &trans                                &trans     &trans   &trans   &trans   &trans
-&trans           &bt BT_SEL 1   &bt BT_SEL 2   &bt BT_SEL 3   &trans                                &mkp MB5   &trans   &trans   &trans   &trans
-                 &bt BT_SEL 0   &trans         &trans         &trans   &trans      &studio_unlock   &mkp MB4                     &trans
+&bt BT_CLR     &bt BT_CLR_ALL   &trans         &trans         &trans                              &trans     &trans     &kp UP     &trans      &trans
+&bt BT_SEL 0   &bt BT_SEL 1     &bt BT_SEL 2   &bt BT_SEL 3   &bt BT_SEL 4                        &trans     &kp LEFT   &kp DOWN   &kp RIGHT   &trans
+&trans         &trans           &trans         &trans         &trans                              &mkp MB5   &trans     &trans     &trans      &trans
+               &trans           &kp LALT       &trans         &kp LCTRL  &kp LSHIFT  &studio_unlock   &mkp MB4                                &trans
             >;
         };
 
 
         layer_4 {
             bindings = <
-&trans   &trans         &trans         &trans         &trans                                &trans   &trans   &trans   &trans   &trans
-&trans   &bt BT_SEL 4   &trans         &trans         &trans                                &trans   &trans   &trans   &trans   &trans
-&trans   &bt BT_SEL 1   &bt BT_SEL 2   &bt BT_SEL 3   &trans                                &trans   &trans   &trans   &trans   &trans
-         &bt BT_SEL 0   &trans         &trans         &trans   &trans      &studio_unlock   &trans                     &trans
+&trans   &trans   &trans   &trans   &trans                                &trans   &trans   &trans   &trans   &trans
+&trans   &trans   &trans   &trans   &trans                                &trans   &trans   &trans   &trans   &trans
+&trans   &trans   &trans   &trans   &trans                                &trans   &trans   &trans   &trans   &trans
+         &trans   &trans   &trans   &trans   &trans      &studio_unlock   &trans                     &trans
             >;
         };
 
@@ -157,10 +234,10 @@
 
         layer_6 {
             bindings = <
-&bt BT_CLR       &trans         &trans         &trans         &trans                                &trans   &trans   &trans   &trans   &trans
-&bt BT_CLR_ALL   &trans         &trans         &trans         &trans                                &trans   &trans   &trans   &trans   &trans
-&trans           &bt BT_SEL 1   &bt BT_SEL 2   &bt BT_SEL 3   &trans                                &trans   &trans   &trans   &trans   &trans
-                 &bt BT_SEL 0   &trans         &trans         &trans   &trans      &studio_unlock   &trans                     &trans
+&trans   &trans   &trans   &trans   &trans                                &trans   &trans   &trans   &trans   &trans
+&trans   &trans   &trans   &trans   &trans                                &trans   &trans   &trans   &trans   &trans
+&trans   &trans   &trans   &trans   &trans                                &trans   &trans   &trans   &trans   &trans
+         &trans   &trans   &trans   &trans   &trans      &studio_unlock   &trans                     &trans
             >;
         };
     };
