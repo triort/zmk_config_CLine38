@@ -273,8 +273,3 @@ layers:
   - '&studio_unlock'
   - {t: ▽, type: trans}
   - {t: ▽, type: trans}
-combos:
-- p: [12, 13]
-  k: TAB
-- p: [11, 12]
-  k: Sft+TAB
